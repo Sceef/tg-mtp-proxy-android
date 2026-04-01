@@ -2,8 +2,6 @@
 
 Локальный **MTProto** для android версии Telegram.
 
-<img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/1888e9fa-f67f-44d5-8068-5801d5f34a6c" />
-
 ## Репозиторий
 
 - **`android/`** — продукт: Kotlin-приложение (Gradle). Модуль **`android/core`** — чистая JVM-логика (handshake, relay, AES-CTR, RawWebSocket, пул WS, TCP fallback); юнит-тесты: `./gradlew :core:test`. Сборка APK: `./gradlew :app:assembleDebug` (нужны **JDK 17+** и Android SDK; удобно открыть `android/` в **Android Studio**). Приложение поднимает **foreground service** с уведомлением, слушает настроенный `host:port`, хранит secret и DC→IP в **DataStore**, кнопка копирует ссылку `tg://proxy`.
