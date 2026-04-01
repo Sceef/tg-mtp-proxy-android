@@ -56,8 +56,8 @@ suspend fun bridgeWsReencrypt(
                 if (parts.isEmpty()) continue
                 if (parts.size > 1) ws.sendBatch(parts) else ws.send(parts[0])
             }
-        } catch (_: CancellationException) {
-            throw it
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
         }
     }
@@ -72,8 +72,8 @@ suspend fun bridgeWsReencrypt(
                 output.write(out)
                 output.flush()
             }
-        } catch (_: CancellationException) {
-            throw it
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
         }
     }
@@ -122,8 +122,8 @@ suspend fun bridgeTcpReencrypt(
                 rout.write(data)
                 rout.flush()
             }
-        } catch (_: CancellationException) {
-            throw it
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
         }
     }
@@ -140,8 +140,8 @@ suspend fun bridgeTcpReencrypt(
                 cout.write(data)
                 cout.flush()
             }
-        } catch (_: CancellationException) {
-            throw it
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
         }
     }
@@ -218,11 +218,12 @@ suspend fun handleMtProtoClient(
             var o = 0
             while (o < ProtocolConstants.HANDSHAKE_LEN) {
                 val r = input.read(h, o, ProtocolConstants.HANDSHAKE_LEN - o)
-                if (r < 0) return
+                if (r < 0) return@withContext null
                 o += r
             }
             h
         }
+        if (handshake == null) return
 
         val result = tryHandshake(handshake, secret) ?: run {
             stats.connectionsBad.incrementAndGet()

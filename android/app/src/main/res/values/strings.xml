@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TG WS Proxy</string>
-    <string name="intro_body">Локальный MTProto → WebSocket мост (портирование с reference/python). Дальнейшая логика прокси — в этом модуле.</string>
+    <string name="intro_body">Локальный MTProto-прокси с WSS-мостом к DC Telegram (логика как в reference/python/proxy/tg_ws_proxy.py). Официальный Telegram для Android обычно не использует tg://proxy так же, как Telegram Desktop — удобно для TDesktop, эмулятора и отладки.</string>
+    <string name="label_host">Bind host</string>
+    <string name="label_port">Порт</string>
+    <string name="label_secret">Secret (32 hex)</string>
+    <string name="label_dc_lines">DC → IP (по строке, формат dc:ip)</string>
+    <string name="hint_dc_lines">2:149.154.167.220\n4:149.154.167.220</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_copy_link">Копировать ссылку</string>
+    <string name="action_start">Запуск</string>
+    <string name="action_stop">Стоп</string>
+    <string name="notif_channel_name">Прокси</string>
+    <string name="notif_title">TG WS Proxy</string>
+    <string name="notif_text">Прокси активен</string>
+    <string name="toast_saved">Сохранено</string>
+    <string name="toast_invalid_secret">Secret должен быть ровно 32 hex-символа</string>
+    <string name="toast_invalid_port">Некорректный порт</string>
+    <string name="toast_copied">Ссылка в буфере</string>
+    <string name="status_running">Сервис: запущен</string>
+    <string name="status_stopped">Сервис: остановлен</string>
+    <string name="toast_notif_denied">Нужно разрешение на уведомления, чтобы держать прокси на переднем плане</string>
 </resources>

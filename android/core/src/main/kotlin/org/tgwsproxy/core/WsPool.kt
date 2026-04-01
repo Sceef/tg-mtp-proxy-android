@@ -73,13 +73,22 @@ class WsPool(
 
     private suspend fun refill(key: PoolKey, targetIp: String, domains: List<String>) {
         val bucket = idle.getOrPut(key) { ArrayDeque() }
+        val needed = synchronized(bucket) {
+            val n = poolSize - bucket.size
+            if (n <= 0) return
+            n
+        }
+        val fresh = ArrayList<HeldWs>(needed)
+        repeat(needed) {
+            val ws = connectOne(targetIp, domains)
+            if (ws != null) {
+                fresh.add(HeldWs(ws, System.nanoTime()))
+            }
+        }
         synchronized(bucket) {
-            val needed = poolSize - bucket.size
-            if (needed <= 0) return
-            repeat(needed) {
-                val ws = connectOne(targetIp, domains)
-                if (ws != null) {
-                    bucket.addLast(HeldWs(ws, System.nanoTime()))
+            for (held in fresh) {
+                if (bucket.size < poolSize) {
+                    bucket.addLast(held)
                 }
             }
         }
