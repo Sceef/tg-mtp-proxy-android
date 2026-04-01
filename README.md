@@ -1,6 +1,6 @@
 # TG WS Proxy (Android)
 
-Локальный **MTProto → WebSocket** мост для сценариев совместимости с **Telegram Desktop** (`tg://proxy`). Трафик шифруется как у Telegram; сторонние серверы не используются.
+Локальный **MTProto** для adndroid версии Telegram.
 
 ```
 Клиент с MTProto proxy → 127.0.0.1:PORT → WSS → Telegram DC
