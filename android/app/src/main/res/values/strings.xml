@@ -8,7 +8,8 @@
     <string name="label_dc_lines">DC → IP (по строке, формат dc:ip)</string>
     <string name="hint_dc_lines">2:149.154.167.220\n4:149.154.167.220</string>
     <string name="action_save">Сохранить</string>
-    <string name="action_copy_link">Копировать ссылку</string>
+    <string name="label_proxy_link">Ссылка tg://proxy — нажмите, чтобы открыть Telegram</string>
+    <string name="action_copy_link">Копировать и открыть</string>
     <string name="action_start">Запуск</string>
     <string name="action_stop">Стоп</string>
     <string name="notif_channel_name">Прокси</string>
@@ -17,7 +18,8 @@
     <string name="toast_saved">Сохранено</string>
     <string name="toast_invalid_secret">Secret должен быть ровно 32 hex-символа</string>
     <string name="toast_invalid_port">Некорректный порт</string>
-    <string name="toast_copied">Ссылка в буфере</string>
+    <string name="toast_copied">Скопировано, открываем Telegram…</string>
+    <string name="toast_no_app_for_tg">Нет приложения для ссылки tg:// (установите Telegram)</string>
     <string name="status_running">Сервис: запущен</string>
     <string name="status_stopped">Сервис: остановлен</string>
     <string name="toast_notif_denied">Нужно разрешение на уведомления, чтобы держать прокси на переднем плане</string>

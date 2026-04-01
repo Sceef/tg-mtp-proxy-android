@@ -1,11 +1,20 @@
 package org.tgwsproxy.app
 
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.text.TextPaint
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -102,9 +111,47 @@ class MainActivity : AppCompatActivity() {
         val port = binding.editPort.text?.toString()?.trim()?.toIntOrNull() ?: 1443
         val secret = binding.editSecret.text?.toString()?.trim()?.lowercase() ?: ""
         if (secret.length == 32) {
-            binding.textLink.text = buildTgProxyLink(getLinkHost(host), port, secret)
+            val url = buildTgProxyLink(getLinkHost(host), port, secret)
+            applyClickableProxyLink(url)
         } else {
             binding.textLink.text = ""
+            binding.textLink.movementMethod = null
+        }
+    }
+
+    private fun linkTextColor(): Int {
+        val attrs = intArrayOf(android.R.attr.textColorLink)
+        val ta = theme.obtainStyledAttributes(attrs)
+        val c = ta.getColor(0, 0xFF1976D2.toInt())
+        ta.recycle()
+        return c
+    }
+
+    /** Показывает URL как одну кликабельную ссылку (открывает tg:// в Telegram). */
+    private fun applyClickableProxyLink(url: String) {
+        val spanStr = SpannableString(url)
+        val clickable = object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                openTgProxyLink(url)
+            }
+
+            override fun updateDrawState(ds: TextPaint) {
+                super.updateDrawState(ds)
+                ds.isUnderlineText = true
+                ds.color = linkTextColor()
+            }
+        }
+        spanStr.setSpan(clickable, 0, url.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        binding.textLink.text = spanStr
+        binding.textLink.movementMethod = LinkMovementMethod.getInstance()
+    }
+
+    private fun openTgProxyLink(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.toast_no_app_for_tg, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -117,9 +164,8 @@ class MainActivity : AppCompatActivity() {
         }
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(ClipData.newPlainText("tg-proxy", text))
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
-            Toast.makeText(this, R.string.toast_copied, Toast.LENGTH_SHORT).show()
-        }
+        Toast.makeText(this, R.string.toast_copied, Toast.LENGTH_SHORT).show()
+        openTgProxyLink(text)
     }
 
     private fun startProxyWithPermission() {
