@@ -7,6 +7,8 @@
 - Нужен **MTProto proxy** с `dd…` secret и ссылкой **`tg://proxy`**.
 - Удобно, когда клиент на том же устройстве ходит на `127.0.0.1:порт`, а также с **Desktop**, **эмулятором** и для **отладки**.
 
+<img width="576" height="1000" alt="image" src="https://github.com/user-attachments/assets/1acdc6a2-41ac-41b5-85e4-3760824962f4" />
+
 ## Как установить
 
 1. Откройте **[Releases](https://github.com/Sceef/tg-mtp-proxy-android/releases)** этого репозитория (или ваш форк — вкладка **Releases**).
