@@ -14,9 +14,10 @@
             android:id="@+id/textIntro"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="12dp"
-            android:text="@string/intro_body"
-            android:textSize="15sp" />
+            android:paddingBottom="16dp"
+            android:text="@string/intro_title"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="match_parent"

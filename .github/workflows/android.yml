@@ -12,6 +12,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Один и тот же коммит на main + тег v* даёт два push-подряд — без этого оба run крутят сборку параллельно.
+# Для совпадающего SHA отменяем ещё не завершившийся запуск (обычно остаётся актуальный, часто по тегу с release).
+concurrency:
+  group: android-ci-${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
