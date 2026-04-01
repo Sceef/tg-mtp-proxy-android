@@ -1,6 +1,6 @@
 # TG WS Proxy (Android)
 
-Локальный **MTProto** для adndroid версии Telegram.
+Локальный **MTProto** для android версии Telegram.
 
 ```
 Клиент с MTProto proxy → 127.0.0.1:PORT → WSS → Telegram DC
