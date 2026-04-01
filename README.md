@@ -2,10 +2,6 @@
 
 Локальный **MTProto** для android версии Telegram.
 
-```
-Клиент с MTProto proxy → 127.0.0.1:PORT → WSS → Telegram DC
-```
-
 <img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/1888e9fa-f67f-44d5-8068-5801d5f34a6c" />
 
 ## Репозиторий
