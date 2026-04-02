@@ -14,6 +14,8 @@ import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
 import android.text.TextPaint
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,6 +49,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
 
         binding.buttonSave.setOnClickListener {
             lifecycleScope.launch {
@@ -75,9 +78,21 @@ class MainActivity : AppCompatActivity() {
             binding.editHost.setText(cfg.host)
             binding.editPort.setText(cfg.port.toString())
             binding.editSecret.setText(cfg.secretHex)
-            binding.editDcLines.setText(prefs.rawDcLines())
             refreshLinkPreview()
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.action_settings) {
+            startActivity(Intent(this, SettingsActivity::class.java))
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     /** @return true if values were written to DataStore */
@@ -85,7 +100,6 @@ class MainActivity : AppCompatActivity() {
         val host = binding.editHost.text?.toString()?.trim() ?: ""
         val portStr = binding.editPort.text?.toString()?.trim() ?: ""
         val secret = binding.editSecret.text?.toString()?.trim()?.lowercase() ?: ""
-        val dcLines = binding.editDcLines.text?.toString() ?: ""
 
         val port = portStr.toIntOrNull()
         if (port == null || port !in 1..65535) {
@@ -101,7 +115,7 @@ class MainActivity : AppCompatActivity() {
             return false
         }
 
-        prefs.save(host.ifEmpty { "127.0.0.1" }, port, secret, dcLines)
+        prefs.saveMain(host.ifEmpty { "127.0.0.1" }, port, secret)
         withContext(Dispatchers.Main) { refreshLinkPreview() }
         return true
     }

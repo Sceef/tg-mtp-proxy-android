@@ -21,7 +21,11 @@ class WsPool(
     private val idle = ConcurrentHashMap<PoolKey, ArrayDeque<HeldWs>>()
     private val refilling = Collections.newSetFromMap(ConcurrentHashMap<PoolKey, Boolean>())
 
+    @Volatile
+    private var socketBufferSize: Int = ProxyConfig.DEFAULT_BUFFER_SIZE
+
     fun warmup(config: ProxyConfig) {
+        socketBufferSize = ProxyConfig.coerceBufferSize(config.bufferSize)
         for ((dc, ip) in config.dcRedirects) {
             if (ip.isEmpty()) continue
             for (isMedia in listOf(false, true)) {
@@ -97,7 +101,11 @@ class WsPool(
     private suspend fun connectOne(targetIp: String, domains: List<String>): RawWebSocket? {
         for (domain in domains) {
             try {
-                return RawWebSocket.connect(targetIp, domain, timeoutMs = 8_000)
+                return RawWebSocket.connect(
+                    targetIp, domain,
+                    timeoutMs = 8_000,
+                    socketBufferSize = socketBufferSize,
+                )
             } catch (e: WsHandshakeError) {
                 if (e.isRedirect) continue
                 return null

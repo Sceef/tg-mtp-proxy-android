@@ -20,6 +20,8 @@ object ProxyPrefKeys {
     val HOST = stringPreferencesKey("host")
     val SECRET_HEX = stringPreferencesKey("secret_hex")
     val DC_LINES = stringPreferencesKey("dc_lines")
+    val BUFFER_SIZE = intPreferencesKey("buffer_size")
+    val POOL_SIZE = intPreferencesKey("pool_size")
 }
 
 class ProxyPreferencesRepository(private val context: Context) {
@@ -45,17 +47,19 @@ class ProxyPreferencesRepository(private val context: Context) {
         return hex
     }
 
-    suspend fun save(
-        host: String,
-        port: Int,
-        secretHex: String,
-        dcLines: String,
-    ) {
+    suspend fun saveMain(host: String, port: Int, secretHex: String) {
         context.dataStore.edit { prefs ->
             prefs[ProxyPrefKeys.HOST] = host.trim()
             prefs[ProxyPrefKeys.PORT] = port
             prefs[ProxyPrefKeys.SECRET_HEX] = secretHex.trim().lowercase()
+        }
+    }
+
+    suspend fun saveAdvanced(dcLines: String, bufferSize: Int, poolSize: Int) {
+        context.dataStore.edit { prefs ->
             prefs[ProxyPrefKeys.DC_LINES] = dcLines.trimEnd()
+            prefs[ProxyPrefKeys.BUFFER_SIZE] = ProxyConfig.coerceBufferSize(bufferSize)
+            prefs[ProxyPrefKeys.POOL_SIZE] = ProxyConfig.coercePoolSize(poolSize)
         }
     }
 
@@ -72,11 +76,25 @@ class ProxyPreferencesRepository(private val context: Context) {
                 dcLines.lines().map { it.trim() }.filter { it.isNotEmpty() },
             )
         }
+        val bufferStored = p[ProxyPrefKeys.BUFFER_SIZE]
+        val poolStored = p[ProxyPrefKeys.POOL_SIZE]
+        val bufferSize = if (bufferStored != null) {
+            ProxyConfig.coerceBufferSize(bufferStored)
+        } else {
+            ProxyConfig.DEFAULT_BUFFER_SIZE
+        }
+        val poolSize = if (poolStored != null) {
+            ProxyConfig.coercePoolSize(poolStored)
+        } else {
+            ProxyConfig.DEFAULT_POOL_SIZE
+        }
         return ProxyConfig(
             port = port,
             host = host,
             secretHex = secret,
             dcRedirects = redirects,
+            bufferSize = bufferSize,
+            poolSize = poolSize,
         )
     }
 }

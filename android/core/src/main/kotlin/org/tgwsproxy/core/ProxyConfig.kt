@@ -6,8 +6,8 @@ data class ProxyConfig(
     val secretHex: String,
     val dcRedirects: Map<Int, String> = defaultDcRedirects,
     val dcOverrides: Map<Int, Int> = mapOf(203 to 2),
-    val bufferSize: Int = 256 * 1024,
-    val poolSize: Int = 4,
+    val bufferSize: Int = DEFAULT_BUFFER_SIZE,
+    val poolSize: Int = DEFAULT_POOL_SIZE,
 ) {
     val secretBytes: ByteArray
         get() {
@@ -16,6 +16,16 @@ data class ProxyConfig(
         }
 
     companion object {
+        const val BUFFER_SIZE_MIN: Int = 16 * 1024
+        const val BUFFER_SIZE_MAX: Int = 4 * 1024 * 1024
+        const val DEFAULT_BUFFER_SIZE: Int = 256 * 1024
+        const val POOL_SIZE_MIN: Int = 1
+        const val POOL_SIZE_MAX: Int = 32
+        const val DEFAULT_POOL_SIZE: Int = 4
+
+        fun coerceBufferSize(value: Int): Int = value.coerceIn(BUFFER_SIZE_MIN, BUFFER_SIZE_MAX)
+        fun coercePoolSize(value: Int): Int = value.coerceIn(POOL_SIZE_MIN, POOL_SIZE_MAX)
+
         /**
          * All common DC ids get a WS attempt (TLS to [ip], SNI kws*.web.telegram.org).
          * DC 2/4 use 149.154.167.220 like Flowseal/tg-ws-proxy defaults; others use canonical DC IPs.

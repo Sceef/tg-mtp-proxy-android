@@ -21,23 +21,31 @@ import javax.net.ssl.X509TrustManager
 class RawWebSocket private constructor(
     private val socket: SSLSocket,
     private val input: InputStream,
-    private val output: OutputStream,
+    private val socketOut: OutputStream,
+    private val maskRandom: SecureRandom,
 ) {
     @Volatile
     private var closed: Boolean = false
 
     suspend fun send(data: ByteArray) = withContext(Dispatchers.IO) {
         if (closed) throw ConnectionError("WebSocket closed")
-        output.write(buildFrameMasked(OP_BINARY, data))
-        output.flush()
+        val frame = buildFrameMasked(OP_BINARY, data)
+        socketOut.write(frame)
+        socketOut.flush()
     }
 
     suspend fun sendBatch(parts: List<ByteArray>) = withContext(Dispatchers.IO) {
         if (closed) throw ConnectionError("WebSocket closed")
-        val bos = ByteArrayOutputStream()
-        for (p in parts) bos.write(buildFrameMasked(OP_BINARY, p))
-        output.write(bos.toByteArray())
-        output.flush()
+        var cap = 0
+        for (p in parts) {
+            cap += frameWireSize(p.size)
+        }
+        val bos = ByteArrayOutputStream(cap.coerceAtLeast(32))
+        for (p in parts) {
+            bos.write(buildFrameMasked(OP_BINARY, p))
+        }
+        socketOut.write(bos.toByteArray())
+        socketOut.flush()
     }
 
     suspend fun recv(): ByteArray? = withContext(Dispatchers.IO) {
@@ -47,15 +55,13 @@ class RawWebSocket private constructor(
                 OP_CLOSE -> {
                     closed = true
                     try {
-                        output.write(buildFrameMasked(OP_CLOSE, payload.copyOf(minOf(2, payload.size))))
-                        output.flush()
+                        writeControlFrameAndFlush(OP_CLOSE, payload.copyOf(minOf(2, payload.size)))
                     } catch (_: Exception) { }
                     null
                 }
                 OP_PING -> {
                     try {
-                        output.write(buildFrameMasked(OP_PONG, payload))
-                        output.flush()
+                        writeControlFrameAndFlush(OP_PONG, payload)
                     } catch (_: Exception) { }
                     continue
                 }
@@ -71,8 +77,7 @@ class RawWebSocket private constructor(
         if (closed) return@withContext
         closed = true
         try {
-            output.write(buildFrameMasked(OP_CLOSE, ByteArray(0)))
-            output.flush()
+            writeControlFrameAndFlush(OP_CLOSE, ByteArray(0))
         } catch (_: Exception) { }
         try {
             socket.close()
@@ -81,17 +86,69 @@ class RawWebSocket private constructor(
 
     fun isClosed(): Boolean = closed || socket.isClosed
 
+    private fun writeControlFrameAndFlush(opcode: Int, data: ByteArray) {
+        socketOut.write(buildFrameMasked(opcode, data))
+        socketOut.flush()
+    }
+
+    private fun buildFrameMasked(opcode: Int, data: ByteArray): ByteArray {
+        val length = data.size
+        val fb = 0x80 or opcode
+        val maskKey = ByteArray(4).also { maskRandom.nextBytes(it) }
+        val masked = xorMask(data, maskKey)
+        val bb = when {
+            length < 126 -> {
+                val b = ByteBuffer.allocate(2 + 4 + masked.size)
+                b.put(fb.toByte())
+                b.put((0x80 or length).toByte())
+                b.put(maskKey)
+                b.put(masked)
+                b.array()
+            }
+            length < 65536 -> {
+                val b = ByteBuffer.allocate(2 + 2 + 4 + masked.size)
+                b.put(fb.toByte())
+                b.put((0x80 or 126).toByte())
+                b.order(ByteOrder.BIG_ENDIAN).putShort(length.toShort())
+                b.put(maskKey)
+                b.put(masked)
+                b.array()
+            }
+            else -> {
+                val b = ByteBuffer.allocate(2 + 8 + 4 + masked.size)
+                b.put(fb.toByte())
+                b.put((0x80 or 127).toByte())
+                b.order(ByteOrder.BIG_ENDIAN).putLong(length.toLong())
+                b.put(maskKey)
+                b.put(masked)
+                b.array()
+            }
+        }
+        return bb
+    }
+
     companion object {
         const val OP_BINARY: Int = 0x2
         const val OP_CLOSE: Int = 0x8
         const val OP_PING: Int = 0x9
         const val OP_PONG: Int = 0xA
 
+        /** Wire size of one masked client frame with payload of [payloadLen] bytes. */
+        private fun frameWireSize(payloadLen: Int): Int {
+            val ext = when {
+                payloadLen < 126 -> 0
+                payloadLen < 65536 -> 2
+                else -> 8
+            }
+            return 2 + ext + 4 + payloadLen
+        }
+
         suspend fun connect(
             ip: String,
             domain: String,
             path: String = "/apiws",
             timeoutMs: Int = 10_000,
+            socketBufferSize: Int = ProxyConfig.DEFAULT_BUFFER_SIZE,
         ): RawWebSocket = withContext(Dispatchers.IO) {
             val factory = trustAllSslContext().socketFactory as SSLSocketFactory
             val socket = factory.createSocket() as SSLSocket
@@ -103,7 +160,8 @@ class RawWebSocket private constructor(
             socket.sslParameters = params
             socket.startHandshake()
 
-            val key = Base64.getEncoder().encodeToString(ByteArray(16).also { SecureRandom().nextBytes(it) })
+            val handshakeRng = SecureRandom()
+            val key = Base64.getEncoder().encodeToString(ByteArray(16).also { handshakeRng.nextBytes(it) })
             val req = buildString {
                 append("GET $path HTTP/1.1\r\n")
                 append("Host: $domain\r\n")
@@ -118,9 +176,9 @@ class RawWebSocket private constructor(
                 append("Chrome/131.0.0.0 Safari/537.36\r\n")
                 append("\r\n")
             }
-            val out = socket.getOutputStream()
-            out.write(req.toByteArray(Charsets.UTF_8))
-            out.flush()
+            val rawOut = socket.getOutputStream()
+            rawOut.write(req.toByteArray(Charsets.UTF_8))
+            rawOut.flush()
 
             val inp = socket.getInputStream()
             val lines = ArrayList<String>()
@@ -140,7 +198,13 @@ class RawWebSocket private constructor(
             val statusCode = parts.getOrNull(1)?.toIntOrNull() ?: 0
 
             if (statusCode == 101) {
-                return@withContext RawWebSocket(socket, inp, out)
+                socket.soTimeout = 0
+                val buf = ProxyConfig.coerceBufferSize(socketBufferSize)
+                try {
+                    socket.sendBufferSize = buf
+                    socket.receiveBufferSize = buf
+                } catch (_: Exception) { }
+                return@withContext RawWebSocket(socket, inp, rawOut, SecureRandom())
             }
 
             val headers = LinkedHashMap<String, String>()
@@ -172,42 +236,6 @@ class RawWebSocket private constructor(
                 out[i] = (data[i].toInt() xor mask[i and 3].toInt()).toByte()
             }
             return out
-        }
-
-        fun buildFrameMasked(opcode: Int, data: ByteArray): ByteArray {
-            val length = data.size
-            val fb = 0x80 or opcode
-            val maskKey = ByteArray(4).also { SecureRandom().nextBytes(it) }
-            val masked = xorMask(data, maskKey)
-            val bb = when {
-                length < 126 -> {
-                    val b = ByteBuffer.allocate(2 + 4 + masked.size)
-                    b.put(fb.toByte())
-                    b.put((0x80 or length).toByte())
-                    b.put(maskKey)
-                    b.put(masked)
-                    b.array()
-                }
-                length < 65536 -> {
-                    val b = ByteBuffer.allocate(2 + 2 + 4 + masked.size)
-                    b.put(fb.toByte())
-                    b.put((0x80 or 126).toByte())
-                    b.order(ByteOrder.BIG_ENDIAN).putShort(length.toShort())
-                    b.put(maskKey)
-                    b.put(masked)
-                    b.array()
-                }
-                else -> {
-                    val b = ByteBuffer.allocate(2 + 8 + 4 + masked.size)
-                    b.put(fb.toByte())
-                    b.put((0x80 or 127).toByte())
-                    b.order(ByteOrder.BIG_ENDIAN).putLong(length.toLong())
-                    b.put(maskKey)
-                    b.put(masked)
-                    b.array()
-                }
-            }
-            return bb
         }
     }
 

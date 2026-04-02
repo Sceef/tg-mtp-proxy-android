@@ -75,6 +75,8 @@ suspend fun bridgeWsReencrypt(
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
+        } finally {
+            runCatching { output.flush() }
         }
     }
 
@@ -89,6 +91,7 @@ suspend fun bridgeWsReencrypt(
         runCatching { jUp.await() }
         runCatching { jDown.await() }
         runCatching { ws.close() }
+        runCatching { output.flush() }
         runCatching {
             socket.shutdownOutput()
             socket.close()
@@ -125,6 +128,8 @@ suspend fun bridgeTcpReencrypt(
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
+        } finally {
+            runCatching { rout.flush() }
         }
     }
 
@@ -143,6 +148,8 @@ suspend fun bridgeTcpReencrypt(
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
+        } finally {
+            runCatching { cout.flush() }
         }
     }
 
@@ -171,6 +178,7 @@ suspend fun tcpFallback(
     cltEncrypt: AesCtrStream,
     tgEncrypt: AesCtrStream,
     tgDecrypt: AesCtrStream,
+    ioBufferSize: Int = ProxyConfig.DEFAULT_BUFFER_SIZE,
 ): Boolean {
     val remote = withContext(Dispatchers.IO) {
         try {
@@ -178,6 +186,11 @@ suspend fun tcpFallback(
                 soTimeout = 10_000
                 tcpNoDelay = true
                 connect(InetSocketAddress(fallbackHost, port), 10_000)
+                val sb = ProxyConfig.coerceBufferSize(ioBufferSize)
+                try {
+                    sendBufferSize = sb
+                    receiveBufferSize = sb
+                } catch (_: Exception) { }
             }
         } catch (_: Exception) {
             null
@@ -189,7 +202,10 @@ suspend fun tcpFallback(
         remote.getOutputStream().write(relayInit)
         remote.getOutputStream().flush()
     }
-    bridgeTcpReencrypt(client, remote, stats, cltDecrypt, cltEncrypt, tgEncrypt, tgDecrypt)
+    bridgeTcpReencrypt(
+        client, remote, stats,
+        cltDecrypt, cltEncrypt, tgEncrypt, tgDecrypt,
+    )
     return true
 }
 
@@ -252,6 +268,7 @@ suspend fun handleMtProtoClient(
                 tcpFallback(
                     socket, relayInit, fb, 443, stats,
                     ciphers.cltDecrypt, ciphers.cltEncrypt, ciphers.tgEncrypt, ciphers.tgDecrypt,
+                    config.bufferSize,
                 )
             }
             return
@@ -271,7 +288,11 @@ suspend fun handleMtProtoClient(
         if (ws == null) {
             for (domain in domains) {
                 try {
-                    ws = RawWebSocket.connect(target, domain, timeoutMs = wsTimeoutMs)
+                    ws = RawWebSocket.connect(
+                        target, domain,
+                        timeoutMs = wsTimeoutMs,
+                        socketBufferSize = config.bufferSize,
+                    )
                     allRedirects = false
                     break
                 } catch (e: WsHandshakeError) {
@@ -305,6 +326,7 @@ suspend fun handleMtProtoClient(
             tcpFallback(
                 socket, relayInit, fb, 443, stats,
                 ciphers.cltDecrypt, ciphers.cltEncrypt, ciphers.tgEncrypt, ciphers.tgDecrypt,
+                config.bufferSize,
             )
             return
         }
