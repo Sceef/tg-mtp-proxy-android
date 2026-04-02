@@ -66,7 +66,7 @@ class ProxyPreferencesRepository(private val context: Context) {
             ?: "00112233445566778899aabbccddeeff"
         val dcLines = p[ProxyPrefKeys.DC_LINES]?.trim() ?: ""
         val redirects = if (dcLines.isEmpty()) {
-            mapOf(2 to "149.154.167.220", 4 to "149.154.167.220")
+            ProxyConfig.defaultDcRedirects
         } else {
             ProxyConfig.parseDcIpList(
                 dcLines.lines().map { it.trim() }.filter { it.isNotEmpty() },
