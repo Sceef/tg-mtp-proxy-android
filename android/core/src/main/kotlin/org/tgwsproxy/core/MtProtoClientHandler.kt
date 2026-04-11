@@ -323,10 +323,8 @@ suspend fun handleMtProtoClient(
                 )
             }
             val fb = DcRouting.fallbackIp(result.dc) ?: target
-            tcpFallback(
-                socket, relayInit, fb, 443, stats,
-                ciphers.cltDecrypt, ciphers.cltEncrypt, ciphers.tgEncrypt, ciphers.tgDecrypt,
-                config.bufferSize,
+            runFallbackAfterWsFailed(
+                socket, relayInit, protoInt, config, stats, result.dc, ciphers, fb, wsTimeoutMs,
             )
             return
         }

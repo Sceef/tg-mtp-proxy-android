@@ -29,6 +29,16 @@
     <string name="toast_invalid_buffer_size">Размер буфера: целое число от 16384 до 4194304</string>
     <string name="toast_invalid_pool_size">Размер пула: целое число от 1 до 32</string>
     <string name="toast_invalid_dc_lines">Некорректный список DC. Формат строки: номер:IP</string>
+    <string name="toast_invalid_cfproxy_domain">Некорректный домен CfProxy (латиница, цифры, точки, дефис)</string>
+    <string name="label_cfproxy_section">CfProxy (обход при недоступном WS к Telegram)</string>
+    <string name="label_cfproxy_enabled">Использовать CfProxy при сбое WebSocket</string>
+    <string name="label_cfproxy_priority">Сначала CfProxy, затем прямой TCP</string>
+    <string name="help_cfproxy_priority">Если выключено: сначала прямое TCP к IP датацентра, затем CfProxy. Если включено — наоборот.</string>
+    <string name="label_cfproxy_fetch_remote">Подгружать список доменов с GitHub при старте</string>
+    <string name="help_cfproxy_fetch_remote">Если выключено, используются только встроенные домены. Свой домен ниже отключает загрузку.</string>
+    <string name="label_cfproxy_user_domain">Свой базовый домен (необязательно)</string>
+    <string name="help_cfproxy_user_domain">Один домен вида example.com — подключение к kwsN.example.com. Пусто — встроенный список.</string>
+    <string name="hint_cfproxy_user_domain">example.com</string>
     <string name="toast_copied">Скопировано, открываем Telegram…</string>
     <string name="toast_no_app_for_tg">Нет приложения для ссылки tg:// (установите Telegram)</string>
     <string name="status_running">Сервис: запущен</string>

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -22,6 +23,10 @@ object ProxyPrefKeys {
     val DC_LINES = stringPreferencesKey("dc_lines")
     val BUFFER_SIZE = intPreferencesKey("buffer_size")
     val POOL_SIZE = intPreferencesKey("pool_size")
+    val FALLBACK_CFPROXY = booleanPreferencesKey("fallback_cfproxy")
+    val CFPROXY_PRIORITY = booleanPreferencesKey("cfproxy_priority")
+    val CFPROXY_USER_DOMAIN = stringPreferencesKey("cfproxy_user_domain")
+    val CFPROXY_FETCH_REMOTE = booleanPreferencesKey("cfproxy_fetch_remote")
 }
 
 class ProxyPreferencesRepository(private val context: Context) {
@@ -55,11 +60,23 @@ class ProxyPreferencesRepository(private val context: Context) {
         }
     }
 
-    suspend fun saveAdvanced(dcLines: String, bufferSize: Int, poolSize: Int) {
+    suspend fun saveAdvanced(
+        dcLines: String,
+        bufferSize: Int,
+        poolSize: Int,
+        fallbackCfproxy: Boolean,
+        cfproxyPriority: Boolean,
+        cfproxyUserDomain: String,
+        cfproxyFetchRemote: Boolean,
+    ) {
         context.dataStore.edit { prefs ->
             prefs[ProxyPrefKeys.DC_LINES] = dcLines.trimEnd()
             prefs[ProxyPrefKeys.BUFFER_SIZE] = ProxyConfig.coerceBufferSize(bufferSize)
             prefs[ProxyPrefKeys.POOL_SIZE] = ProxyConfig.coercePoolSize(poolSize)
+            prefs[ProxyPrefKeys.FALLBACK_CFPROXY] = fallbackCfproxy
+            prefs[ProxyPrefKeys.CFPROXY_PRIORITY] = cfproxyPriority
+            prefs[ProxyPrefKeys.CFPROXY_USER_DOMAIN] = cfproxyUserDomain.trim()
+            prefs[ProxyPrefKeys.CFPROXY_FETCH_REMOTE] = cfproxyFetchRemote
         }
     }
 
@@ -88,6 +105,10 @@ class ProxyPreferencesRepository(private val context: Context) {
         } else {
             ProxyConfig.DEFAULT_POOL_SIZE
         }
+        val fallbackCfproxy = p[ProxyPrefKeys.FALLBACK_CFPROXY] ?: true
+        val cfproxyPriority = p[ProxyPrefKeys.CFPROXY_PRIORITY] ?: true
+        val cfproxyUserDomain = p[ProxyPrefKeys.CFPROXY_USER_DOMAIN]?.trim().orEmpty()
+        val cfproxyFetchRemote = p[ProxyPrefKeys.CFPROXY_FETCH_REMOTE] ?: true
         return ProxyConfig(
             port = port,
             host = host,
@@ -95,6 +116,10 @@ class ProxyPreferencesRepository(private val context: Context) {
             dcRedirects = redirects,
             bufferSize = bufferSize,
             poolSize = poolSize,
+            fallbackCfproxy = fallbackCfproxy,
+            cfproxyPriority = cfproxyPriority,
+            cfproxyUserDomain = cfproxyUserDomain,
+            cfproxyFetchRemote = cfproxyFetchRemote,
         )
     }
 }

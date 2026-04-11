@@ -17,6 +17,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.tgwsproxy.core.CfProxyDomainStore
 import org.tgwsproxy.core.MtProtoProxyServer
 import org.tgwsproxy.core.Stats
 import org.tgwsproxy.core.WsPool
@@ -66,6 +67,10 @@ class ProxyForegroundService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return
+        }
+
+        runBlocking {
+            CfProxyDomainStore.refreshFromGitHubIfEnabled(config)
         }
 
         acceptJob?.cancel()

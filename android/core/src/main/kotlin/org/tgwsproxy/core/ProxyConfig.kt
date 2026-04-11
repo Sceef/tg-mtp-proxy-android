@@ -8,6 +8,10 @@ data class ProxyConfig(
     val dcOverrides: Map<Int, Int> = mapOf(203 to 2),
     val bufferSize: Int = DEFAULT_BUFFER_SIZE,
     val poolSize: Int = DEFAULT_POOL_SIZE,
+    val fallbackCfproxy: Boolean = true,
+    val cfproxyPriority: Boolean = true,
+    val cfproxyUserDomain: String = "",
+    val cfproxyFetchRemote: Boolean = true,
 ) {
     val secretBytes: ByteArray
         get() {

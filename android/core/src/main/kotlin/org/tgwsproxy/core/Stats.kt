@@ -6,6 +6,7 @@ class Stats {
     val connectionsTotal = AtomicLong()
     val connectionsActive = AtomicLong()
     val connectionsWs = AtomicLong()
+    val connectionsCfproxy = AtomicLong()
     val connectionsTcpFallback = AtomicLong()
     val connectionsBad = AtomicLong()
     val wsErrors = AtomicLong()
